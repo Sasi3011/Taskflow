@@ -1,9 +1,49 @@
 import './App.css'
+import { useState } from 'react'
 import { Navigate, NavLink, Outlet, Route, Routes } from 'react-router-dom'
+import Login from './pages/auth/Login'
+import Signup from './pages/auth/Signup'
+import Dashboard from './pages/dashboard/Dashboard'
 
-const user = {
-	fullName: 'Sasi Kumar',
-	role: 'Project Manager',
+const USERS_STORAGE_KEY = 'taskflow_users'
+const SESSION_STORAGE_KEY = 'taskflow_session'
+
+function readStoredUsers() {
+	try {
+		const stored = localStorage.getItem(USERS_STORAGE_KEY)
+		if (!stored) {
+			return []
+		}
+		const parsed = JSON.parse(stored)
+		return Array.isArray(parsed) ? parsed : []
+	} catch {
+		return []
+	}
+}
+
+function writeStoredUsers(users) {
+	localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(users))
+}
+
+function readSessionUser() {
+	try {
+		const stored = sessionStorage.getItem(SESSION_STORAGE_KEY)
+		if (!stored) {
+			return null
+		}
+		const parsed = JSON.parse(stored)
+		return parsed?.email ? parsed : null
+	} catch {
+		return null
+	}
+}
+
+function writeSessionUser(user) {
+	sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(user))
+}
+
+function clearSessionUser() {
+	sessionStorage.removeItem(SESSION_STORAGE_KEY)
 }
 
 function PlaceholderPage({ title, text }) {
@@ -13,15 +53,6 @@ function PlaceholderPage({ title, text }) {
 			<h2>{title}</h2>
 			<p className="subtitle">{text}</p>
 		</section>
-	)
-}
-
-function Dashboard() {
-	return (
-		<PlaceholderPage
-			title="Dashboard"
-			text="Dashboard component placeholder. Your analytics and summary widgets will appear here."
-		/>
 	)
 }
 
@@ -52,24 +83,6 @@ function UserProfile() {
 	)
 }
 
-function Login() {
-	return (
-		<PlaceholderPage
-			title="Login"
-			text="Login component placeholder. Authentication form fields will be added here."
-		/>
-	)
-}
-
-function Signup() {
-	return (
-		<PlaceholderPage
-			title="Signup"
-			text="Signup component placeholder. New account registration fields will be added here."
-		/>
-	)
-}
-
 function AuthLayout() {
 	return (
 		<div className="auth-shell">
@@ -80,14 +93,32 @@ function AuthLayout() {
 	)
 }
 
-function AppLayout() {
+function RequireAuth({ isAuthenticated }) {
+	if (!isAuthenticated) {
+		return <Navigate to="/login" replace />
+	}
+
+	return <Outlet />
+}
+
+function PublicOnly({ isAuthenticated }) {
+	if (isAuthenticated) {
+		return <Navigate to="/" replace />
+	}
+
+	return <Outlet />
+}
+
+function AppLayout({ sessionUser, onLogout }) {
 	const modules = [
 		{ name: 'Dashboard', tag: 'Live', to: '/' },
 		{ name: 'Projects', tag: '18', to: '/project' },
 		{ name: 'Team Members', tag: '12', to: '/team' },
 		{ name: 'Profile', tag: 'You', to: '/profile' },
 	]
-	const profileInitial = user.fullName.trim().charAt(0).toUpperCase()
+	const displayName = sessionUser?.fullName || 'Guest User'
+	const displayRole = sessionUser?.role || 'Member'
+	const profileInitial = displayName.trim().charAt(0).toUpperCase()
 
 	return (
 		<div className="page-layout">
@@ -120,13 +151,18 @@ function AppLayout() {
 				</div>
 
 				<section className="user-section" aria-label="User profile">
-					<div className="profile-pic" aria-hidden="true">
-						{profileInitial}
+					<div className="user-main">
+						<div className="profile-pic" aria-hidden="true">
+							{profileInitial}
+						</div>
+						<div className="user-info">
+							<p className="user-name">{displayName}</p>
+							<p className="user-role">{displayRole}</p>
+						</div>
 					</div>
-					<div className="user-info">
-						<p className="user-name">{user.fullName}</p>
-						<p className="user-role">{user.role}</p>
-					</div>
+					<button type="button" className="logout-btn" onClick={onLogout}>
+						Logout
+					</button>
 				</section>
 			</aside>
 
@@ -138,17 +174,97 @@ function AppLayout() {
 }
 
 function App() {
+	const [sessionUser, setSessionUser] = useState(() => readSessionUser())
+
+	const handleSignup = ({ name, email, password }) => {
+		const trimmedName = name.trim()
+		const normalizedEmail = email.trim().toLowerCase()
+		const strongPasswordRegex = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[^A-Za-z\d]).{6,}$/
+
+		if (!trimmedName || !normalizedEmail || !password) {
+			return { ok: false, message: 'Please fill in all fields.' }
+		}
+
+		if (!strongPasswordRegex.test(password)) {
+			return {
+				ok: false,
+				message:
+					'Password must be at least 6 characters with at least one letter, one number, and one special character.',
+			}
+		}
+
+		const users = readStoredUsers()
+		const userExists = users.some((user) => user.email === normalizedEmail)
+
+		if (userExists) {
+			return { ok: false, message: 'An account with this email already exists.' }
+		}
+
+		const newUser = {
+			id: Date.now(),
+			fullName: trimmedName,
+			email: normalizedEmail,
+			password,
+			role: 'Member',
+		}
+
+		writeStoredUsers([...users, newUser])
+
+		const sessionPayload = {
+			fullName: newUser.fullName,
+			email: newUser.email,
+			role: newUser.role,
+		}
+
+		writeSessionUser(sessionPayload)
+		setSessionUser(sessionPayload)
+
+		return { ok: true }
+	}
+
+	const handleLogin = ({ email, password }) => {
+		const normalizedEmail = email.trim().toLowerCase()
+		const users = readStoredUsers()
+		const existingUser = users.find(
+			(user) => user.email === normalizedEmail && user.password === password,
+		)
+
+		if (!existingUser) {
+			return { ok: false, message: 'Invalid email or password.' }
+		}
+
+		const sessionPayload = {
+			fullName: existingUser.fullName,
+			email: existingUser.email,
+			role: existingUser.role,
+		}
+
+		writeSessionUser(sessionPayload)
+		setSessionUser(sessionPayload)
+
+		return { ok: true }
+	}
+
+	const handleLogout = () => {
+		clearSessionUser()
+		setSessionUser(null)
+	}
+
 	return (
 		<Routes>
-			<Route element={<AppLayout />}>
-				<Route path="/" element={<Dashboard />} />
-				<Route path="/project" element={<Projects />} />
-				<Route path="/team" element={<Team />} />
-				<Route path="/profile" element={<UserProfile />} />
+			<Route element={<RequireAuth isAuthenticated={Boolean(sessionUser)} />}>
+				<Route element={<AppLayout sessionUser={sessionUser} onLogout={handleLogout} />}>
+					<Route path="/" element={<Dashboard />} />
+					<Route path="/project" element={<Projects />} />
+					<Route path="/team" element={<Team />} />
+					<Route path="/profile" element={<UserProfile />} />
+				</Route>
 			</Route>
-			<Route element={<AuthLayout />}>
-				<Route path="/login" element={<Login />} />
-				<Route path="/signup" element={<Signup />} />
+			<Route element={<PublicOnly isAuthenticated={Boolean(sessionUser)} />}>
+				<Route element={<AuthLayout />}>
+					<Route path="/login" element={<Login onLogin={handleLogin} />} />
+					<Route path="/signup" element={<Signup onSignup={handleSignup} />} />
+				</Route>
 			</Route>
 			<Route path="*" element={<Navigate to="/" replace />} />
 		</Routes>

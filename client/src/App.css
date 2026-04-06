@@ -155,8 +155,15 @@ body {
 	padding: 0.8rem;
 	display: flex;
 	align-items: center;
+	justify-content: space-between;
 	gap: 0.65rem;
 	background: linear-gradient(140deg, #ffffff, #f7f1ff);
+}
+
+.user-main {
+	display: flex;
+	align-items: center;
+	gap: 0.65rem;
 }
 
 .profile-pic {
@@ -183,6 +190,23 @@ body {
 	color: var(--muted);
 }
 
+.logout-btn {
+	border: 1px solid #dcccfa;
+	background: #fff;
+	color: #5c38b4;
+	border-radius: 8px;
+	padding: 0.4rem 0.6rem;
+	font-family: inherit;
+	font-size: 0.82rem;
+	font-weight: 600;
+	cursor: pointer;
+	transition: background-color 140ms ease;
+}
+
+.logout-btn:hover {
+	background: #f5eeff;
+}
+
 .container {
 	padding: 1.5rem;
 	animation: fadeInUp 0.55s ease;
@@ -196,7 +220,97 @@ body {
 }
 
 .auth-container {
-	width: min(760px, 100%);
+	width: min(520px, 100%);
+}
+
+.auth-card {
+	padding: 1.55rem;
+	border-radius: 16px;
+	border: 1px solid #e8defc;
+	background:
+		radial-gradient(circle at 90% 10%, #f8efff 0, transparent 30%),
+		linear-gradient(145deg, #ffffff, #faf6ff);
+}
+
+.auth-card h2 {
+	margin: 0.35rem 0 0;
+	font-size: clamp(1.6rem, 3vw, 2rem);
+	color: #3d257a;
+}
+
+.auth-form {
+	margin-top: 1.15rem;
+	display: flex;
+	flex-direction: column;
+	gap: 0.85rem;
+}
+
+.auth-field {
+	display: flex;
+	flex-direction: column;
+	gap: 0.35rem;
+}
+
+.auth-field span {
+	font-size: 0.88rem;
+	font-weight: 600;
+	color: #4a3875;
+}
+
+.auth-field input {
+	width: 100%;
+	border: 1px solid #dcccfa;
+	border-radius: 10px;
+	padding: 0.68rem 0.78rem;
+	font-family: inherit;
+	font-size: 0.95rem;
+	background: #fff;
+	color: var(--text);
+	outline: none;
+	transition: border-color 140ms ease, box-shadow 140ms ease;
+}
+
+.auth-field input:focus {
+	border-color: #9d74ff;
+	box-shadow: 0 0 0 3px rgba(123, 77, 255, 0.14);
+}
+
+.auth-btn {
+	margin-top: 0.2rem;
+	width: 100%;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.auth-error {
+	margin: 0;
+	font-size: 0.86rem;
+	font-weight: 600;
+	color: #a62f68;
+}
+
+.auth-hint {
+	margin: -0.2rem 0 0;
+	font-size: 0.8rem;
+	line-height: 1.35;
+	color: #6f6790;
+}
+
+.auth-meta {
+	margin: 0.95rem 0 0;
+	font-size: 0.92rem;
+	color: var(--muted);
+}
+
+.auth-meta a {
+	color: var(--accent-strong);
+	font-weight: 600;
+	text-decoration: none;
+}
+
+.auth-meta a:hover {
+	text-decoration: underline;
 }
 
 .route-placeholder {
